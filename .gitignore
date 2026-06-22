@@ -1,0 +1,12 @@
+# Executables
+test1
+test2
+bench_tp
+bench_lat
+a.out
+*.exe
+
+# Object files and build artifacts
+*.o
+*.obj
+
