@@ -1,5 +1,6 @@
 #include <atomic>
 #include <cstddef>
+#include <type_traits>
 
 #pragma once
 
@@ -36,6 +37,28 @@ public:
         // cause we have to make the queue faster by removing overhead of the modulo operator 
         // and replacing it with a & operation
         static_assert((capacity & (capacity - 1)) == 0, "Capacity MUST be a power of 2!");
+        
+        // This queue uses raw byte copying and lacks exception handling or allocators.
+        // We enforce that the type is trivially copyable to prevent dangerous memory corruption.
+        static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable for raw memory safety!");
+    }
+
+    // --- Queue State Methods ---
+    
+    // Returns approximate number of items in the queue.
+    size_t size() const {
+        // Load tail first, then head, to prevent underflow if consumer pops exactly between reads
+        size_t current_tail = tail.load(std::memory_order_acquire);
+        size_t current_head = head.load(std::memory_order_acquire);
+        return current_head - current_tail;
+    }
+
+    bool empty() const {
+        return size() == 0;
+    }
+
+    constexpr size_t max_size() const {
+        return capacity;
     }
 
     bool push(const T& item){
